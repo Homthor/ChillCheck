@@ -128,11 +128,17 @@
         {% if inventory %}
             <ul>
                 {% for name, qty in inventory %}
-                    <li>{{ name }} — {{ qty }}</li>
+                    <li>
+                        {{ name }} — {{ qty }}
+                        <form method="POST" action="/remove_from_inventory" style="display:inline;">
+                            <input type="hidden" name="product_name" value="{{ name }}">
+                            <button type="submit" class="btn" style="background-color: #dc3545;">Удалить</button>
+                        </form>
+                    </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p>Нет продуктов</p>
+           <p>Нет продуктов</p>
         {% endif %}
 
         <form method="POST" action="/add_to_inventory">
@@ -143,15 +149,21 @@
         </form>
 
         <h2>🛒 Список покупок:</h2>
-        {% if shopping_list %}
-            <ul>
-                {% for name, qty in shopping_list %}
-                    <li>{{ name }} — {{ qty }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>Пусто</p>
-        {% endif %}
+            {% if shopping_list %}
+                <ul>
+                    {% for name, qty in shopping_list %}
+                        <li>
+                            {{ name }} — {{ qty }}
+                            <form method="POST" action="/remove_from_shopping_list" style="display:inline;">
+                                <input type="hidden" name="product_name" value="{{ name }}">
+                                <button type="submit" class="btn" style="background-color: #dc3545;">Удалить</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Пусто</p>
+            {% endif %}
 
         <form method="POST" action="/add_to_shopping_list">
             <h2>📝 Добавить в список покупок</h2>
