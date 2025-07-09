@@ -129,7 +129,12 @@
             <ul>
                 {% for name, qty in inventory %}
                     <li>
-                        {{ name }} — {{ qty }}
+                        {{ name }} —
+                        <form method="POST" action="/update_inventory_quantity" style="display:inline;">
+                            <input type="hidden" name="product_name" value="{{ name }}">
+                            <input type="number" name="quantity" value="{{ qty }}" min="0" style="width: 60px;">
+                            <button type="submit" class="btn">Обновить</button>
+                        </form>
                         <form method="POST" action="/remove_from_inventory" style="display:inline;">
                             <input type="hidden" name="product_name" value="{{ name }}">
                             <button type="submit" class="btn" style="background-color: #dc3545;">Удалить</button>
@@ -153,7 +158,12 @@
                 <ul>
                     {% for name, qty in shopping_list %}
                         <li>
-                            {{ name }} — {{ qty }}
+                            {{ name }} —
+                            <form method="POST" action="/update_shopping_list_quantity" style="display:inline;">
+                                <input type="hidden" name="product_name" value="{{ name }}">
+                                <input type="number" name="quantity" value="{{ qty }}" min="0" style="width: 60px;">
+                                <button type="submit" class="btn">Обновить</button>
+                            </form>
                             <form method="POST" action="/remove_from_shopping_list" style="display:inline;">
                                 <input type="hidden" name="product_name" value="{{ name }}">
                                 <button type="submit" class="btn" style="background-color: #dc3545;">Удалить</button>
