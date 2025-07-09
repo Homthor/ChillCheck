@@ -52,7 +52,6 @@ class MyHandler(BaseHTTPRequestHandler):
                 self.send_response(302)
 
                 self.send_header('Location', '/login')
-
                 self.end_headers()
 
                 return
@@ -321,12 +320,24 @@ class MyHandler(BaseHTTPRequestHandler):
 
             except Exception as e:
                 self.render_template('join_house.html', {'error': f'Ошибка: {str(e)}'})
-
+        #   Добавление (Орбаботка ниже)
         elif self.path == '/add_to_inventory':
             self.handle_add_product(table='house_inventory')
 
         elif self.path == '/add_to_shopping_list':
             self.handle_add_product(table='shopping_list')
+        # Удаление
+        elif self.path == '/remove_from_inventory':
+            self.handle_remove_product(table='house_inventory')
+
+        elif self.path == '/remove_from_shopping_list':
+            self.handle_remove_product(table='shopping_list')
+
+        elif self.path == '/update_inventory_quantity':
+            self.handle_update_quantity(table='house_inventory')
+        # Изменение
+        elif self.path == '/update_shopping_list_quantity':
+            self.handle_update_quantity(table='shopping_list')
 
     def handle_add_product(self, table):
         user_id = get_logged_in_user(self.headers)
@@ -390,6 +401,112 @@ class MyHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.render_template('dashboard.html', {'error': str(e)})
 
+    def handle_remove_product(self, table):
+        user_id = get_logged_in_user(self.headers)
+        if not user_id:
+            self.send_response(302)
+            self.send_header('Location', '/login')
+            self.end_headers()
+            return
+
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length).decode()
+        data = parse_qs(post_data)
+        product_name = data.get('product_name', [''])[0].strip()
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+
+            # Получаем house_id
+            cur.execute("SELECT house_id FROM house_users WHERE user_id = %s", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                raise Exception("Пользователь не состоит в доме")
+            house_id = row[0]
+
+            # Получаем product_id
+            cur.execute("SELECT product_id FROM base_products WHERE product_name = %s", (product_name,))
+            row = cur.fetchone()
+            if not row:
+                raise Exception("Продукт не найден")
+            product_id = row[0]
+
+            # Удаляем продукт из нужной таблицы
+            cur.execute(f"DELETE FROM {table} WHERE house_id = %s AND product_id = %s", (house_id, product_id))
+
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            self.send_response(302)
+            self.send_header('Location', '/dashboard')
+            self.end_headers()
+
+        except Exception as e:
+            self.render_template('dashboard.html', {'error': str(e)})
+
+    def handle_update_quantity(self, table):
+        user_id = get_logged_in_user(self.headers)
+        if not user_id:
+            self.send_response(302)
+            self.send_header('Location', '/login')
+            self.end_headers()
+            return
+
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length).decode()
+        data = parse_qs(post_data)
+
+        product_name = data.get('product_name', [''])[0].strip()
+        quantity_str = data.get('quantity', [''])[0]
+
+        try:
+            quantity = int(quantity_str)
+            if quantity < 0:
+                raise ValueError("Количество не может быть отрицательным")
+        except ValueError:
+            self.render_template('dashboard.html', {'error': 'Неверное количество'})
+            return
+
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+
+            # Получаем house_id
+            cur.execute("SELECT house_id FROM house_users WHERE user_id = %s", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                raise Exception("Пользователь не состоит в доме")
+            house_id = row[0]
+
+            # Получаем product_id
+            cur.execute("SELECT product_id FROM base_products WHERE product_name = %s", (product_name,))
+            row = cur.fetchone()
+            if not row:
+                raise Exception("Продукт не найден")
+            product_id = row[0]
+
+            if quantity == 0:
+                # Если количество 0 — удаляем запись
+                cur.execute(f"DELETE FROM {table} WHERE house_id = %s AND product_id = %s", (house_id, product_id))
+            else:
+                # Иначе обновляем количество
+                cur.execute(f"""
+                    UPDATE {table} SET quantity = %s
+                    WHERE house_id = %s AND product_id = %s
+                """, (quantity, house_id, product_id))
+
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            self.send_response(302)
+            self.send_header('Location', '/dashboard')
+            self.end_headers()
+
+        except Exception as e:
+            self.render_template('dashboard.html', {'error': str(e)})
 
 def run():
     server_address = ('localhost', 8000)
